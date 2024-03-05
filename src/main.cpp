@@ -41,6 +41,8 @@ int main() {
 #include <thread>
 #include "SmartServoBus.hpp"
 #include "arm_commands.h"
+#include "joystick.h" 
+
 
 #define DELAY 50
 #define DELAY_BLINK 250
@@ -67,6 +69,8 @@ void handleButton(const char buffer[bufferSize]);
 void setup() {
     rkConfig cfg;
     // Upravte nastavení, například:
+    float speed_coef = 1.2;
+
     cfg.motor_max_power_pct = 100;
     cfg.motor_max_power_pct = 30; // limit výkonu motorů na 30%
     Serial.begin(115200);
@@ -80,6 +84,9 @@ void setup() {
     WiFiUDP udp;
     udp.begin(80);
 
+    //bool BTworks = true; // jede bluetooth a pouzivame ho?
+
+
     //std::thread t1(print);
 
     rkSetup(cfg);
@@ -89,22 +96,24 @@ void setup() {
     rkLedBlue();
 
 
-    
 
-    while (true) {
-        delay(2000);
-        rkLedRed(true);
 
-        // Dopředu na 100%
-        rkMotorsSetSpeed(100, 100);
-        delay(2000);
+    while(true) {
+    if ( read_joystick() ){
 
-        rkMotorsSetPower(100, 100);
-        delay(2000);
+        float axis_0 = (abs(axis[0]) < 10) ? 0 : -axis[0] /128.0;
+        //axis_0 = axis_0*axis_0*axis_0;
+        float axis_2 = (abs(axis[2]) < 10) ? 0 : -axis[2] /128.0;
+        // axis_1 = axis_1*axis_1*axis_1;
 
-        printf("jede to");
-        Serial.print("jede to");
-        
+        int levy_m = ((axis_2 ) - (axis_0 /2 )) * speed_coef;  // hodnota pro levy motor
+        int pravy_m = ((axis_2) + (axis_0 /2 )) * speed_coef; // hodnota pro pravy motor
+
+        if(levy_m + pravy_m > 160 || levy_m + pravy_m < -160) {
+            levy_m = ((axis_2) - (axis_0 /4 )) * speed_coef;
+            pravy_m = ((axis_2 ) + (axis_0 /4 )) * speed_coef;
+        }
+    }
     }
 }
 
